@@ -8,6 +8,7 @@
         "lighthouse": "^9.6.8"
     },
     "dependencies": {
+        "@tensorflow/tfjs-node": "^4.2.0",
         "gm": "^1.25.0",
         "sharp": "^0.31.3"
     }
