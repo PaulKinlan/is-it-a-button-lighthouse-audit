@@ -1,6 +1,6 @@
-import {Audit} from 'lighthouse';
+const Audit = require('lighthouse').Audit;
+const sharp = require('sharp');
 
-const MAX_SEARCHABLE_TIME = 4000;
 
 /**
  * @fileoverview Tests that `window.myLoadMetrics.searchableTime` was below the
@@ -16,12 +16,19 @@ class LoadAudit extends Audit {
       description: 'Used ',
 
       // The name of the custom gatherer class that provides input to this audit.
-      requiredArtifacts: ['AnchorElements'],
+      requiredArtifacts: ['AnchorElements', 'FullPageScreenshot'],
     };
   }
 
   static audit(artifacts) {
     const anchorElements = artifacts.AnchorElements;
+    const fullPageScreenshot = artifacts.FullPageScreenshot;
+
+    const data = fullPageScreenshot.screenshot.data.replace(/^data:image\/png;base64,/, "");
+
+    console.log(data)
+
+    const screenshot = sharp(Buffer.from(fullPageScreenshot.screenshot.data, 'base64'));
 
     return {
       score: 100

@@ -1,11 +1,14 @@
 {
     "name": "is-it-a-button-lighthouse-audit",
     "private": true,
-    "type": "module",
     "scripts": {
-      "run": "lighthouse --config-path=./audit/config.js https://example.com"
+        "run": "lighthouse --config-path=./audit/config.js https://example.com"
     },
     "devDependencies": {
-      "lighthouse": "^9.5.0"
+        "lighthouse": "^9.6.8"
+    },
+    "dependencies": {
+        "gm": "^1.25.0",
+        "sharp": "^0.31.3"
     }
-  }
+}
