@@ -11,7 +11,7 @@ async function testImage(model, image) {
   const normalizedData = tf.tidy(() => {
     //convert the image data to a tensor
     const decodedImage = tf.node.decodePng(image, 3);
-    const tensor = tf.image.resizeBilinear(decodedImage, [256, 256]); 
+    const tensor = tf.image.resizeBilinear(decodedImage, [256, 256]);
 
     // Normalize the image
     const offset = tf.scalar(255.0);
@@ -24,7 +24,7 @@ async function testImage(model, image) {
 
   const predTensor = model.predict(normalizedData);
 
-  console.log(predTensor.print());
+  //console.log(predTensor.print());
   const predSoftmax = predTensor.softmax();
   const data = await predSoftmax.data();
 
@@ -42,12 +42,10 @@ async function testImage(model, image) {
 class AnchorLooksLikeAButtonAudit extends Audit {
   static get meta() {
     return {
-      id: "anchor-looks-like-a-button-audit",
-      title: "Anchor element looks like a button",
-      failureTitle: "Anchor element looks like a button ",
-      description: "Used ",
-
-      // The name of the custom gatherer class that provides input to this audit.
+      id: "anchor-looks-like-a-button",
+      title: "Anchor element looks like links",
+      failureTitle: "Anchor element looks like a button",
+      description: "Links should like links and buttons should look like buttons",
       requiredArtifacts: ["AnchorElements", "FullPageScreenshot"],
     };
   }
@@ -65,25 +63,57 @@ class AnchorLooksLikeAButtonAudit extends Audit {
     const metadata = await screenshot.metadata();
     const newModel = await tf.loadLayersModel("file://./model/model.json");
 
+    const buttonsOnPage = [];
+
     for (const anchorElement of anchorElements) {
       const { left, top, width, height } = anchorElement.node.boundingRect;
-      const newScreenshot = screenshot
-        .clone()
-        .extract({
-          left: Math.max(left - 10, 0),
-          top: Math.max(top - 10, 0),
-          width: Math.min(width + 20, metadata.width),
-          height: Math.min(height + 20, metadata.height),
-        });
+      const newScreenshot = screenshot.clone().extract({
+        left: Math.max(left - 10, 0),
+        top: Math.max(top - 10, 0),
+        width: Math.min(width + 20, metadata.width),
+        height: Math.min(height + 20, metadata.height),
+      });
 
-      const image = await newScreenshot.png().toBuffer()
-
-      const { classname, score } = await testImage(newModel, image);
-      console.log(classname, score)
+      try {
+        const image = await newScreenshot.clone().png().toBuffer();
+        const { classname, score } = await testImage(newModel, image);
+        if (classname === "Button") {
+          await newScreenshot.clone().png().toFile(`${anchorElement.node.lhId}-button.png`);
+          console.log(anchorElement, classname, score)
+          buttonsOnPage.push(anchorElement);
+        }
+      } catch (error) {
+        console.error(error, left, top, width, height);
+        continue;
+      }
     }
 
+    const headings = [
+      {
+        key: "node",
+        itemType: "node",
+        text: "Failing Elements",
+      },
+      {
+        key: "suggestion",
+        itemType: "text",
+        text: "Suggestion",
+      },
+    ];
+
+    const failingFormsData = buttonsOnPage.map((button) => {
+      return {
+        node: Audit.makeNodeItem(button.node),
+        suggestion: "People might confuse this link with a button. Consider changing the style of the link to make it look like a link.",
+      };
+    });
+
+    const details = Audit.makeTableDetails(headings, failingFormsData);
+
     return {
-      score: 1,
+      score: buttonsOnPage.length > 0 ? 0 : 1,
+      displayValue: `Found ${buttonsOnPage.length} anchors that look like buttons`,
+      details,
     };
   }
 }
