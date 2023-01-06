@@ -10,7 +10,7 @@ const sharp = require("sharp");
 async function testImage(model, image) {
   const normalizedData = tf.tidy(() => {
     //convert the image data to a tensor
-    const decodedImage = tf.node.decodePng(image, 3);
+    const decodedImage = tf.node.decodePng(image, 1);
     const tensor = tf.image.resizeBilinear(decodedImage, [256, 256]);
 
     // Normalize the image
@@ -24,9 +24,10 @@ async function testImage(model, image) {
 
   const predTensor = model.predict(normalizedData);
 
-  //console.log(predTensor.print());
   const predSoftmax = predTensor.softmax();
   const data = await predSoftmax.data();
+
+  console.log(predSoftmax.print(), data)
 
   const max = Math.max(...data);
   const maxIdx = data.indexOf(max);
@@ -77,14 +78,14 @@ class AnchorLooksLikeAButtonAudit extends Audit {
       try {
         const image = await newScreenshot.clone().png().toBuffer();
         const { classname, score } = await testImage(newModel, image);
+        console.log(classname, score, anchorElement.node.lhId);
+        await newScreenshot.clone().png().toFile(`${anchorElement.node.lhId}-${classname}.png`);
+
         if (classname === "Button") {
-          await newScreenshot.clone().png().toFile(`${anchorElement.node.lhId}-button.png`);
-          console.log(anchorElement, classname, score)
           buttonsOnPage.push(anchorElement);
         }
       } catch (error) {
         console.error(error, left, top, width, height);
-        continue;
       }
     }
 
