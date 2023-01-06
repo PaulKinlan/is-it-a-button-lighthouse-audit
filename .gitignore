@@ -106,3 +106,4 @@ dist
 *.report.html
 .DS_Store
 audit/images/
+audit/**/*.png
