@@ -3,6 +3,14 @@ module.exports = {
   audits: [
     'anchor-looks-like-a-button'
   ],
+  passes: [
+    {
+      passName: 'defaultPass',
+      gatherers: [
+        './gatherer.js'
+      ]
+    }
+  ],
   categories: {
     custom_ally: {
       title: 'ML A11Y Metrics',

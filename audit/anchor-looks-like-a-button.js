@@ -27,7 +27,7 @@ async function testImage(model, image) {
   const predSoftmax = predTensor.softmax();
   const data = await predSoftmax.data();
 
-  console.log(predSoftmax.print(), data)
+  //console.log(predSoftmax.print(), data)
 
   const max = Math.max(...data);
   const maxIdx = data.indexOf(max);
@@ -47,13 +47,14 @@ class AnchorLooksLikeAButtonAudit extends Audit {
       title: "Anchor element looks like links",
       failureTitle: "Anchor element looks like a button",
       description: "Links should like links and buttons should look like buttons",
-      requiredArtifacts: ["AnchorElements", "FullPageScreenshot"],
+      requiredArtifacts: ["NonOccludedAnchorElements", "AnchorElements", "FullPageScreenshot"],
     };
   }
 
-  static async audit(artifacts) {
+  static async audit(artifacts, context) {
     const anchorElements = artifacts.AnchorElements;
-    const fullPageScreenshot = artifacts.FullPageScreenshot;
+    const fullPageScreenshot = artifacts.FullPageScreenshot; // TODO for the future, it turns out that the node data is also in here.
+    const nonOccludedAnchorElement = artifacts.NonOccludedAnchorElements;
 
     const data = fullPageScreenshot.screenshot.data.replace(
       /^data:image\/jpeg;base64,/,
@@ -78,7 +79,7 @@ class AnchorLooksLikeAButtonAudit extends Audit {
       try {
         const image = await newScreenshot.clone().png().toBuffer();
         const { classname, score } = await testImage(newModel, image);
-        console.log(classname, score, anchorElement.node.lhId);
+        // console.log(classname, score, anchorElement.node.lhId);
         await newScreenshot.clone().png().toFile(`${anchorElement.node.lhId}-${classname}.png`);
 
         if (classname === "Button") {
