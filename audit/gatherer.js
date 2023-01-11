@@ -74,10 +74,10 @@ const isOccluded = (anchor, page) =>
     // We only want the button where it is clearly the top level element.
     if (elements.indexOf(el) > -1) {
       return {
-        x: Math.max(window.scrollX + x - 10, 0),
-        y: Math.max(window.scrollY + y - 10, 0),
-        width: width + 20,
-        height: height + 20,
+        left: Math.floor(Math.max(x - 10, 0) + scrollX),
+        top: Math.floor(Math.max(y - 10, 0) + scrollY),
+        width: Math.ceil(width + 20),
+        height: Math.ceil(height + 20)
       };
     }
     // We ignore these later.
@@ -100,24 +100,19 @@ class NonOccludedAnchorElements extends Gatherer {
     for (const anchor of anchors) {
       const result = await isOccluded(anchor, page);
       if (result.width > 0 && result.height > 0) {
-        unoccludedAnchors.push(anchor.asElement());
+        // result is more accurate.
+        unoccludedAnchors.push([anchor.asElement(), result]);
       }
     }
 
-    for (const anchor of unoccludedAnchors) {
+    for (const [anchor, position] of unoccludedAnchors) {
       const nodeDetailsFunction = pageFunctions.getNodeDetailsString;
-
-      const boundingBoxY = await anchor.evaluate((el) => {
-        return el.getBoundingClientRect().y + scrollY;
-      }, anchor);
-
       // We need are jamming lighthouse's getNodeDetails function into a new function so we can pass it an argument in puppeteer... it's a hack..
       const func = new Function('a', `${nodeDetailsFunction}; return getNodeDetails(a)`);
       const nodeDetails = await anchor.evaluate(func, [1])
 
       // The bounding box is relative to the mainframe, but we want it relative to the top.
-      const boundingBox = await anchor.boundingBox();
-      boundingBox.y = boundingBoxY;
+      nodeDetails.newBoundingRect = position;
 
       elementSummaries.push({
         tagName: await getProperty("tagName", anchor),

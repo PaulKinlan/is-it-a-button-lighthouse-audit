@@ -7,7 +7,8 @@ module.exports = {
     {
       passName: 'defaultPass',
       gatherers: [
-        './gatherer.js'
+        './gatherer.js',
+        './big-screenshot-gatherer.js'
       ]
     }
   ],

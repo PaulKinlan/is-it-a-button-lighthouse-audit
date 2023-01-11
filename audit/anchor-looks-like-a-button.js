@@ -46,41 +46,49 @@ class AnchorLooksLikeAButtonAudit extends Audit {
       id: "anchor-looks-like-a-button",
       title: "Anchor element looks like links",
       failureTitle: "Anchor element looks like a button",
-      description: "Links should like links and buttons should look like buttons",
-      requiredArtifacts: ["NonOccludedAnchorElements", "AnchorElements", "FullPageScreenshot"],
+      description:
+        "Links should like links and buttons should look like buttons",
+      requiredArtifacts: [
+        "NonOccludedAnchorElements",
+        "BigScreenshot",
+      ],
     };
   }
 
   static async audit(artifacts, context) {
-    const anchorElements = artifacts.AnchorElements;
-    const fullPageScreenshot = artifacts.FullPageScreenshot; // TODO for the future, it turns out that the node data is also in here.
+    const fullPageScreenshot = artifacts.BigScreenshot; // TODO for the future, it turns out that the node data is also in here.
     const nonOccludedAnchorElement = artifacts.NonOccludedAnchorElements;
 
-    const data = fullPageScreenshot.screenshot.data.replace(
-      /^data:image\/jpeg;base64,/,
+    const devicePixelRatio = 2;//fullPageScreenshot.devicePixelRatio;
+    const data = fullPageScreenshot.screenshot.replace(
+      /^data:image\/(jpeg|png);base64,/,
       ""
     );
 
     const screenshot = sharp(Buffer.from(data, "base64"));
+    screenshot.clone().toFile("./images/screenshot.png");
     const metadata = await screenshot.metadata();
     const newModel = await tf.loadLayersModel("file://./model/model.json");
 
     const buttonsOnPage = [];
 
-    for (const anchorElement of anchorElements) {
-      const { left, top, width, height } = anchorElement.node.boundingRect;
+    for (const anchorElement of nonOccludedAnchorElement) {
+      const { left, top, width, height } = anchorElement.node.newBoundingRect;
+     
       const newScreenshot = screenshot.clone().extract({
-        left: Math.max(left - 10, 0),
-        top: Math.max(top - 10, 0),
-        width: Math.min(width + 20, metadata.width),
-        height: Math.min(height + 20, metadata.height),
+        left: Math.floor(Math.max(left * devicePixelRatio, 0)),
+        top: Math.floor(Math.max(top * devicePixelRatio,0)),
+        width: Math.floor(Math.min(width * devicePixelRatio, metadata.width)),
+        height: Math.floor(Math.min(height * devicePixelRatio, metadata.height)),
       });
-
       try {
         const image = await newScreenshot.clone().png().toBuffer();
         const { classname, score } = await testImage(newModel, image);
         // console.log(classname, score, anchorElement.node.lhId);
-        await newScreenshot.clone().png().toFile(`${anchorElement.node.lhId}-${classname}.png`);
+        await newScreenshot
+          .clone()
+          .png()
+          .toFile(`./images/${anchorElement.node.lhId}-${classname}.png`);
 
         if (classname === "Button") {
           buttonsOnPage.push(anchorElement);
@@ -106,7 +114,8 @@ class AnchorLooksLikeAButtonAudit extends Audit {
     const failingFormsData = buttonsOnPage.map((button) => {
       return {
         node: Audit.makeNodeItem(button.node),
-        suggestion: "People might confuse this link with a button. Consider changing the style of the link to make it look like a link.",
+        suggestion:
+          "People might confuse this link with a button. Consider changing the style of the link to make it look like a link.",
       };
     });
 
