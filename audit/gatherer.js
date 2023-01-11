@@ -109,7 +109,7 @@ class NonOccludedAnchorElements extends Gatherer {
       const nodeDetailsFunction = pageFunctions.getNodeDetailsString;
       // We need are jamming lighthouse's getNodeDetails function into a new function so we can pass it an argument in puppeteer... it's a hack..
       const func = new Function('a', `${nodeDetailsFunction}; return getNodeDetails(a)`);
-      const nodeDetails = await anchor.evaluate(func, [1])
+      const nodeDetails = await anchor.evaluate(func)
 
       // The bounding box is relative to the mainframe, but we want it relative to the top.
       nodeDetails.newBoundingRect = position;

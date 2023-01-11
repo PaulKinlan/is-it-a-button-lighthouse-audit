@@ -49,6 +49,7 @@ class AnchorLooksLikeAButtonAudit extends Audit {
       description:
         "Links should like links and buttons should look like buttons",
       requiredArtifacts: [
+        "AnchorElements",
         "NonOccludedAnchorElements",
         "BigScreenshot",
       ],
@@ -56,9 +57,19 @@ class AnchorLooksLikeAButtonAudit extends Audit {
   }
 
   static async audit(artifacts, context) {
-    const fullPageScreenshot = artifacts.BigScreenshot; // TODO for the future, it turns out that the node data is also in here.
+    // We need this because I need a high quality screenshot
+    const fullPageScreenshot = artifacts.BigScreenshot; 
+    // A list of anchor elements that don't have anything in from of them.
     const nonOccludedAnchorElement = artifacts.NonOccludedAnchorElements;
+    // A list of anchor elements that I use to get image in the results.
+    const anchorElements = artifacts.AnchorElements;
 
+    //invert anchorElements to devtoolsPathNode
+    const anchorMap = {};
+    for(const anchorElement of anchorElements) {
+      anchorMap[anchorElement.node.devtoolsNodePath] = anchorElement.node;
+    }
+    
     const devicePixelRatio = 2;//fullPageScreenshot.devicePixelRatio;
     const data = fullPageScreenshot.screenshot.replace(
       /^data:image\/(jpeg|png);base64,/,
@@ -113,7 +124,8 @@ class AnchorLooksLikeAButtonAudit extends Audit {
 
     const failingFormsData = buttonsOnPage.map((button) => {
       return {
-        node: Audit.makeNodeItem(button.node),
+        // Use this node to find the visual of the element that will be displayed in the report. (it's a hack)
+        node: Audit.makeNodeItem(anchorMap[button.node.devtoolsNodePath]),
         suggestion:
           "People might confuse this link with a button. Consider changing the style of the link to make it look like a link.",
       };
