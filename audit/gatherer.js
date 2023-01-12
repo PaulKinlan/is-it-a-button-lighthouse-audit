@@ -92,7 +92,7 @@ class NonOccludedAnchorElements extends Gatherer {
   async afterPass(options, loadData) {
     const { driver } = options;
     const { page, executionContext } = await connect(driver);
-    const anchors = await page.$$("a");
+    const anchors = await page.$$("a:not([role=button]):not(:has(img)):not(:has(button))"); // Only look at text links for now.
 
     const unoccludedAnchors = [];
     const elementSummaries = [];
