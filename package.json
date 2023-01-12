@@ -2,7 +2,7 @@
     "name": "is-it-a-button-lighthouse-audit",
     "private": true,
     "scripts": {
-        "run": "lighthouse --config-path=./audit/config.js https://example.com"
+        "run": "(cd audit && lighthouse https://example.com --config-path=config.js --view)"
     },
     "devDependencies": {
         "lighthouse": "^9.6.8"
